@@ -19,23 +19,26 @@ class topict:
         print(f"image size : {self.original_image_data.shape[0]}x{self.original_image_data.shape[1]}")
         self._create_pallete()
         pass
-    
+
     def _init_image(self):
         image=cv2.imread(self.original_image_path)
         image=cv2.resize(image,None, None, self.image_ratio, self.image_ratio, cv2.INTER_NEAREST)
         self.original_image=image
         self.original_image_data=np.array(image)
-    
+
     def _create_pallete(self):
         folder=glob.glob(self.pallete_path+"/*")
         self.pallete_paths=np.array([])
         self.pallete=[]
+        self.pallete_img=[]
         for f in tqdm(folder,desc="create pallete"):
             self.pallete_paths=np.append(self.pallete_paths,f)
             img=cv2.imread(f)
+            self.pallete_img.append(img)
             img_data=np.array(img)
             img_ave=np.average(np.average(img_data,axis=1),axis=0)
             self.pallete.append(img_ave)
+
             pass
         self.pallete=np.array(self.pallete)
 
@@ -46,7 +49,7 @@ class topict:
             pass
         idx=np.array(distance)
         return np.argmin(idx)
-    
+
     def create_data(self):
         output_data=[]
         for i in tqdm(range(self.original_image_data.shape[0]),desc="create image data"):
@@ -54,20 +57,20 @@ class topict:
             pass
         self.changed_image_data=np.array(output_data)
         pass
-    
+
     def output_bynparray(self):
         return self.changed_image_data
-    
+
     def output_byhtml(self,path,detail:bool):
-        
+
         if detail:
             img_detail_html=f"""
             <br>
             <span>image size {self.changed_image_data.shape[0]}x{self.changed_image_data.shape[1]}</span>
             <br>
-            
+
             """
-        
+
         images_str=""
         for i in tqdm(range(self.changed_image_data.shape[0]),desc="preparing output"):
             images_str+="<div>"
@@ -75,7 +78,7 @@ class topict:
                 images_str+=f'<img src="{self.pallete_paths[self.changed_image_data[i][j]]}">'
             images_str+="</div>"
         with open(path,"w") as f :
-            
+
             f.write(f"""
                     <!DOCTYPE html>
     <html lang="en">
@@ -89,25 +92,33 @@ class topict:
 
     {images_str}
     {img_detail_html}
-    
+
     </body>
         </html>
                     """)
         pass
+    def out_byimage(self,path):
+      temp_h=[]
+      for i in tqdm(range(self.changed_image_data.shape[0]),desc="changing output type"):
+          temp_w=[]
+          for j in range(self.changed_image_data.shape[1]):
+            temp_w.append(self.pallete_img[self.changed_image_data[i][j]])
+          temp_h.append(cv2.hconcat(temp_w))
+      temp_img=cv2.vconcat(temp_h)
+      cv2.imwrite(path,temp_img)
 
-
-
+# 元画像、パレット、拡大率
+chenger=topict("/content/download3.jpeg","/content/drive/MyDrive/colors",1)
 if __name__=="__main__":
     from matplotlib import pyplot as plt
-    
-    chenger=topict("download2.jpeg","colors",1)
-    chenger.create_data()
-    chenger.output_byhtml("index5.html",True)
 
+    # chenger=topict("/content/download.jpeg","/content/drive/MyDrive/colors",1)
+    chenger.create_data()
+    #chenger.output_byhtml("index5.html",True)
+    chenger.out_byimage("output4.jpeg")
     fig=plt.figure()
     ax=fig.add_subplot(1,1,1,projection="3d")
     for i in chenger.pallete:
         ax.scatter(i[0],i[1],i[2])
         pass
     plt.show()
-    # print(chenger.changed_image_data)
